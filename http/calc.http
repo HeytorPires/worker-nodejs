@@ -1,0 +1,7 @@
+@baseUrl = http://localhost:3333
+
+### Executar com worker thread
+GET {{baseUrl}}/calc
+
+### Executar com worker thread
+GET {{baseUrl}}/calc/job
