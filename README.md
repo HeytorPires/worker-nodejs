@@ -8,10 +8,10 @@ O Node.js executa o seu JavaScript em **uma única thread** (o event loop). Isso
 
 A API expõe o mesmo cálculo de duas formas para comparar:
 
-| Rota | Onde roda | Efeito |
-|---|---|---|
-| `GET /calc` | Thread principal | Bloqueia o event loop: `GET /users` fica sem resposta enquanto o cálculo roda |
-| `GET /calc/job` | Worker thread do pool | O event loop continua livre: `GET /users` responde na hora |
+| Rota            | Onde roda             | Efeito                                                                        |
+| --------------- | --------------------- | ----------------------------------------------------------------------------- |
+| `GET /calc`     | Thread principal      | Bloqueia o event loop: `GET /users` fica sem resposta enquanto o cálculo roda |
+| `GET /calc/job` | Worker thread do pool | O event loop continua livre: `GET /users` responde na hora                    |
 
 ### Experimento
 
@@ -41,11 +41,11 @@ A API sobe em `http://localhost:3333`.
 
 Todas as rotas de cálculo aceitam `?duration=<ms>`: quanto tempo o cálculo deve ocupar a CPU. Ausente ou inválido (não numérico, 0, negativo) usa o padrão de **60000 ms**.
 
-| Método | Rota | Descrição | Exemplo de resposta |
-|---|---|---|---|
-| GET | `/calc?duration=5000` | Cálculo síncrono na thread principal | `{ "durationMs": 5000, "result": 150000000 }` |
-| GET | `/calc/job?duration=5000` | Cálculo em um worker do pool | `{ "message": "...", "result": { "threadId": 2, "iterations": 150000000, "durationMs": 5000 } }` |
-| GET | `/users?nome=ana` | Lista usuários em memória (rota leve para testar o event loop) | `[{ "id": 1, "nome": "Ana Souza", ... }]` |
+| Método | Rota                      | Descrição                                                      | Exemplo de resposta                                                                              |
+| ------ | ------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| GET    | `/calc?duration=5000`     | Cálculo síncrono na thread principal                           | `{ "durationMs": 5000, "result": 150000000 }`                                                    |
+| GET    | `/calc/job?duration=5000` | Cálculo em um worker do pool                                   | `{ "message": "...", "result": { "threadId": 2, "iterations": 150000000, "durationMs": 5000 } }` |
+| GET    | `/users?nome=ana`         | Lista usuários em memória (rota leve para testar o event loop) | `[{ "id": 1, "nome": "Ana Souza", ... }]`                                                        |
 
 `threadId` mostra qual worker executou o job: com o pool reaproveitando threads, ele alterna sempre entre os mesmos valores.
 
@@ -114,7 +114,7 @@ response ◄─ Promise resolvida ◄─ on("message") ◄─ postMessage(result
 
 ## Limitações conhecidas
 
-- **Sem limite máximo para `duration`**: `GET /calc?duration=999999999` trava a API por dias. Aceitável em um projeto de estudo, nunca em produção.
+- **Sem limite máximo para `duration`**: `GET /calc?duration=999999999` trava a API por dias. Aceitável em um projeto de estudo.
 - **Fila sem limite**: sob carga, a fila do pool cresce indefinidamente em memória. Bibliotecas como [Piscina](https://github.com/piscinajs/piscina) oferecem `maxQueue`, timeout por tarefa e reposição de workers que morrem.
 - **Worker que quebra não é recriado**: o pool perde capacidade até reiniciar a aplicação.
 - **Tipos não validados em runtime**: `TData`/`TResult` são checados só na compilação; o `postMessage` não valida o formato da mensagem.
