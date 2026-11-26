@@ -1,7 +1,7 @@
 @baseUrl = http://localhost:3333
 
-### Executar síncrono (bloqueia o event loop)
-GET {{baseUrl}}/calc
+### Executar síncrono (bloqueia o event loop) — duration em ms (padrão 60000)
+GET {{baseUrl}}/calc?duration=20000
 
-### Executar com worker thread
-GET {{baseUrl}}/calc/job
+### Executar com worker thread — duration em ms (padrão 60000)
+GET {{baseUrl}}/calc/job?duration=5000

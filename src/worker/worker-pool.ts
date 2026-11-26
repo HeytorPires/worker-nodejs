@@ -1,20 +1,25 @@
 import { Worker } from "node:worker_threads";
 
 // Uma tarefa: o dado enviado ao worker + resolve/reject da Promise de run()
-type Task = {
-  data: unknown;
-  resolve: (value: unknown) => void;
+type Task<TData, TResult> = {
+  data: TData;
+  resolve: (value: TResult) => void;
   reject: (error: Error) => void;
 };
 
-// Reaproveita um número fixo de workers em vez de criar um por requisição
-export class WorkerPool {
+// Reaproveita um número fixo de workers em vez de criar um por requisição.
+// TData: o que run() envia ao worker. TResult: o que o worker devolve.
+export class WorkerPool<TData, TResult> {
+  // todos os workers criados (para poder encerrá-los no destroy)
+  private workers: Worker[] = [];
   // workers livres
   private idle: Worker[] = [];
   // tarefas esperando um worker livre
-  private queue: Task[] = [];
+  private queue: Task<TData, TResult>[] = [];
   // qual tarefa cada worker ocupado está executando
-  private running = new Map<Worker, Task>();
+  private running = new Map<Worker, Task<TData, TResult>>();
+  // depois do destroy, o pool não aceita mais tarefas
+  private destroyed = false;
 
   constructor(file: string, size: number) {
     // cria todos os workers uma única vez
@@ -22,7 +27,7 @@ export class WorkerPool {
       const worker = new Worker(file);
 
       // worker terminou: entrega o resultado e libera o worker
-      worker.on("message", (result) => {
+      worker.on("message", (result: TResult) => {
         this.running.get(worker)?.resolve(result);
         this.release(worker);
       });
@@ -33,21 +38,43 @@ export class WorkerPool {
         this.running.delete(worker);
       });
 
+      this.workers.push(worker);
       // começa livre
       this.idle.push(worker);
     }
   }
 
   // coloca a tarefa na fila e devolve uma Promise com o resultado
-  run(data: unknown): Promise<unknown> {
+  run(data: TData): Promise<TResult> {
+    if (this.destroyed) {
+      return Promise.reject(new Error("WorkerPool encerrado"));
+    }
+
     console.log(
       `Fila de tarefas: ${this.queue.length}, Tarefas em execução: ${this.running.size}`,
     );
-    return new Promise((resolve, reject) => {
+    return new Promise<TResult>((resolve, reject) => {
+      console.log(`Adicionando tarefa à fila (dado: ${JSON.stringify(data)})`);
       this.queue.push({ data, resolve, reject });
       // tenta executar já, se houver worker livre
       this.next();
     });
+  }
+
+  // encerra todos os workers e rejeita as tarefas pendentes
+  async destroy(): Promise<void> {
+    if (this.destroyed) return;
+    this.destroyed = true;
+
+    const error = new Error("WorkerPool encerrado");
+    for (const task of this.queue) task.reject(error);
+    for (const task of this.running.values()) task.reject(error);
+    this.queue = [];
+    this.running.clear();
+    this.idle = [];
+
+    await Promise.all(this.workers.map((worker) => worker.terminate()));
+    this.workers = [];
   }
 
   // devolve o worker para os livres e puxa a próxima tarefa
