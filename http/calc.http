@@ -1,6 +1,6 @@
 @baseUrl = http://localhost:3333
 
-### Executar com worker thread
+### Executar síncrono (bloqueia o event loop)
 GET {{baseUrl}}/calc
 
 ### Executar com worker thread
