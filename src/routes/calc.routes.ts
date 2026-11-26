@@ -11,7 +11,7 @@ function parseDuration(req: Request): number {
   return duration > 0 ? duration : DEFAULT_DURATION_MS;
 }
 
-// Recebe o pool de fora: quem cria (server.ts) é quem encerra.
+// Recebe o pool de fora: ele é criado uma vez no server.ts e reaproveitado aqui.
 export function createCalcRoutes(pool: WorkerPool<CalcJobData, CalcJobResult>) {
   const calcRoutes = Router();
 
